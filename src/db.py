@@ -1,7 +1,9 @@
 import sqlalchemy
+
 from sqlalchemy import Column, Integer, String, Boolean, Float, Table
 from typing import Dict, List
 from schema import User
+from datetime import datetime
 
 def connect(user: str, password: str, db: str, host: str='localhost', port: int=5432):
     '''Returns a connection and a metadata object'''
@@ -40,7 +42,8 @@ def insert_values(table, values: List[Dict]):
 
 def main()->None:
     create_table(User)
-    insert_values(User, [{"user_name": "Aadesh", "bus_number": "KA 01 AB 1994", "tracking_status": True, "last_lat": 19.09, "last_long": 20.1}])
+    insert_values(User, [{"user_name": "Aadesh", "bus_number": "KA 01 AB 1994", "tracking_status": True,
+                          "last_lat": 19.09, "last_long": 20.1, "timestamp": datetime.now()}])
 
 if __name__ == '__main__':
     main()

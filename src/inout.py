@@ -137,8 +137,8 @@ def all_stops()->jsonify:
     return response
 
 
-@app.route('/v1/track_bus')
-def track_bus()->jsonify:
+@app.route('/v1/share_bus_location')
+def share_bus_location()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("user_id", type=int, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
@@ -147,6 +147,5 @@ def track_bus()->jsonify:
 
     args = reqparse.parse_args(request)
     db.create_table(schema.User)
-    db.insert_values(schema.User, [
-        {"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True, "last_lat": args.latitude,
-         "last_long": args.longitude}])
+    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True,
+                                    "last_lat": args.latitude, "last_long": args.longitude}])
