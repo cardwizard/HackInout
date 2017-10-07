@@ -121,5 +121,13 @@ def share_bus_location()->jsonify:
     args = reqparse.parse_args(request)
     db.create_table(schema.User)
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True,
-                                    "last_lat": args.latitude, "last_long": args.longitude}])
+                                    "last_lat": args.latitude, "last_long": args.longitude, "timestamp": datetime.now()}])
 
+@app.route('/v1/stop_sharing')
+def stop_sharing_location()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("user_id", type=int, required=True)
+    reqparse.add_argument("bus_number", type=str, required=True)
+    args = reqparse.parse_args(request)
+
+    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False}])
