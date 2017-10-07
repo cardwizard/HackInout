@@ -50,7 +50,7 @@ def get_routes(start: str, end: str)->List:
             route_number_list.append(route_number)
     return route_number_list
 
-def get_stops(route_number: str):
+def find_stops(route_number: str)->List:
     url = "https://narasimhadatta.info/cgi-bin/find.cgi"
     post_fields = {"route": route_number}
     scraper_info = Request(url, urlencode(post_fields).encode())
@@ -168,11 +168,11 @@ def stop_sharing_location()->jsonify:
 def get_stops()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("route_number", type=str, required=True)
-    reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("bus_number", type=str, required=False)
     args = reqparse.parse_args(request)
 
     if bus_stops_global.get(args.route_number, None) is None:
-        bus_stops = get_stops(args.route_number)
+        bus_stops = find_stops(args.route_number)
         bus_stops_global[args.route_number] = bus_stops
     else:
         bus_stops = bus_stops_global[args.route_number]
