@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, Response as FlaskResponse
+from flask import Flask, jsonify, request, Response as FlaskResponse, make_response
 from flask_restful.reqparse import RequestParser
 from pathlib import Path
 from urllib.parse import urlencode
@@ -6,6 +6,7 @@ from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
 from typing import List, Dict
 from requests import get
+from json import load
 
 import json
 import hashlib
@@ -13,10 +14,10 @@ import logging
 import binascii
 import random
 import string
-from json import load
 
 # Setup Flask
 app = Flask(__name__)
+
 
 # Setup the logging
 api_key = "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E"
@@ -66,7 +67,9 @@ def status()->jsonify:
                 "healthy": True,
                 "version": "1.0.1"
             }
-    return jsonify(status=status)
+    response = jsonify(status=status)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 
 @app.route('/v1/bus_info', methods=["GET"])
@@ -113,16 +116,21 @@ def bus_info()->jsonify:
 
         result_bus_info.append(buses_data)
 
-    return jsonify(result_bus_info)
+    response = jsonify(result_bus_info)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 
 @app.route('/v1/all_stops')
 def all_stops()->jsonify:
-    return jsonify([{"title": x} for x in all_bus_stops])
+    response = jsonify([{"title": x} for x in all_bus_stops])
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route('/v1/track_bus')
 def track_bus()->jsonify:
     reqparse = RequestParser()
+    reqparse.add_argument("user_id", type=int, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
     reqparse.add_argument("latitude", type=str, required=True)
     reqparse.add_argument("longitude", type=str, required=True)
