@@ -38,35 +38,6 @@ with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
 
 
-def compute_bus_count(frequency: str)->int:
-    frequency_map = {"rare": 2, "very rare": 1, "average": 5, "frequent": 8, "very frequent": 10}
-    max_count = frequency_map.get(frequency.lower(), 1)
-    return random.randint(max(0, max_count-2), max_count)
-
-
-def generate_bus_numbers(count: int)->List:
-    bus_numbers = []
-
-    for item in range(count):
-        number = "KA 01 {}{} {}".format(random.choice(string.ascii_uppercase), random.choice(string.ascii_uppercase),
-                                   random.randint(100, 9999))
-        bus_numbers.append(number)
-    return bus_numbers
-
-
-def find_geocoding(address: str)->Dict:
-    url = "https://maps.googleapis.com/maps/api/geocode/json?address={}&key={}".format(address, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
-    response = get(url)
-    return response.json()["results"][0]["geometry"]["location"]
-
-
-class BusInfo:
-    def __init__(self, route_number: int, stops: List[str], bus_frequency: int) -> None:
-        self.route_number = route_number
-        self.stops = stops
-        self.bus_frequency = bus_frequency
-
-
 @app.route('/v1/status')
 def status()->jsonify:
     """
@@ -99,23 +70,19 @@ def bus_info()->jsonify:
     soup = BeautifulSoup(json, 'html.parser')
     tr = soup.find_all('tr')
 
-    required_bus_info = []
+    route_number_list = []
 
     for rows in tr:
         td = rows.find_all('td')
         if td:
             route_number = td[0].get_text()
-
-            all_stops = td[3].get_text().split(",")
-            all_stops = [x.strip() for x in all_stops]
-            b = BusInfo(route_number, all_stops, compute_bus_count(td[4].get_text().strip()))
-            required_bus_info.append(b)
+            route_number_list.append(route_number)
 
     result_bus_info = []
 
-    for item in required_bus_info:
-        buses_data = {"route_number": item.route_number, "all_buses": []}
-        to_select = [{"route_number": item.route_number}, {"tracking_status": True}]
+    for route in route_number_list:
+        buses_data = {"route_number": route, "all_buses": []}
+        to_select = [{"route_number": route}, {"tracking_status": True}]
         rows = db.select_values(schema.User, to_select)
 
         max_time_stamp = datetime(year=1900, month=1, day=1)
@@ -155,3 +122,4 @@ def share_bus_location()->jsonify:
     db.create_table(schema.User)
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True,
                                     "last_lat": args.latitude, "last_long": args.longitude}])
+
