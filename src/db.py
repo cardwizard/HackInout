@@ -19,9 +19,10 @@ def connect(user: str, password: str, db: str, host: str='localhost', port: int=
 
 def create_table(table):
     con, meta = connect('postgres', 'AADesh123', 'hackinout')
-    base_table = table(meta)
+    base_table = table()
 
     if not con.dialect.has_table(con, base_table.__tablename__):
+        base_table.add_table_info(meta)
         base_table.__table__.create()
 
 def main()->None:
