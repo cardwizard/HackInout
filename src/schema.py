@@ -8,7 +8,7 @@ class User:
         self.__tablename__ = "bus_tracker"
         self.__table__ =  ""
 
-    def add_table_info(self, meta):
+    def add_table_info(self, meta) -> Table:
         return Table(self.__tablename__,
               meta,
               Column("user_name", String, primary_key=True),

@@ -1,6 +1,7 @@
 import sqlalchemy
-from schema import User
 from sqlalchemy import Column, Integer, String, Boolean, Float, Table
+from typing import Dict, List
+from schema import User
 
 def connect(user: str, password: str, db: str, host: str='localhost', port: int=5432):
     '''Returns a connection and a metadata object'''
@@ -25,8 +26,21 @@ def create_table(table):
         base_table.add_table_info(meta)
         base_table.__table__.create()
 
+
+def insert_values(table, values: List[Dict]):
+    con, meta = connect('postgres', 'AADesh123', 'hackinout')
+    base_table = table()
+    table = meta.tables[base_table.__tablename__]
+    try:
+        # Try to insert if it is new.
+        con.execute(table.insert(), values)
+    except:
+        # If it is not, update the row.
+        con.execute(table.update(), values)
+
 def main()->None:
     create_table(User)
+    insert_values(User, [{"user_name": "Aadesh", "bus_number": "KA 01 AB 1994", "tracking_status": True, "last_lat": 19.09, "last_long": 20.1}])
 
 if __name__ == '__main__':
     main()

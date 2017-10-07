@@ -19,23 +19,12 @@ import random
 import string
 import sqlalchemy
 
+# Database imports
+import src.schema as schema
+import src.db as db
+
 # Setup Flask
 app = Flask(__name__)
-
-def connect(user: str, password: str, db: str, host: str='localhost', port: int=5432):
-    '''Returns a connection and a metadata object'''
-    # We connect with the help of the PostgreSQL URL
-    # postgresql://federer:grandestslam@localhost:5432/tennis
-    url = 'postgresql://{}:{}@{}:{}/{}'
-    url = url.format(user, password, host, port, db)
-
-    # The return value of create_engine() is our connection object
-    con = sqlalchemy.create_engine(url, client_encoding='utf8')
-
-    # We then bind the connection to MetaData()
-    meta = sqlalchemy.MetaData(bind=con, reflect=True)
-
-    return con, meta
 
 
 # Setup the logging
@@ -147,6 +136,7 @@ def all_stops()->jsonify:
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+
 @app.route('/v1/track_bus')
 def track_bus()->jsonify:
     reqparse = RequestParser()
@@ -156,3 +146,7 @@ def track_bus()->jsonify:
     reqparse.add_argument("longitude", type=str, required=True)
 
     args = reqparse.parse_args(request)
+    db.create_table(schema.User)
+    db.insert_values(schema.User, [
+        {"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True, "last_lat": args.latitude,
+         "last_long": args.longitude}])
