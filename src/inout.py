@@ -42,6 +42,7 @@ def generate_bus_numbers(count: int)->List:
         bus_numbers.append(number)
     return bus_numbers
 
+
 def find_geocoding(address: str)->Dict:
     url = "https://maps.googleapis.com/maps/api/geocode/json?address={}&key={}".format(address, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
     response = get(url)
@@ -66,7 +67,6 @@ def status()->jsonify:
                 "version": "1.0.1"
             }
     return jsonify(status=status)
-
 
 
 @app.route('/v1/bus_info', methods=["GET"])
@@ -101,12 +101,12 @@ def bus_info()->jsonify:
     result_bus_info = []
 
     for item in required_bus_info:
-        buses_data = {"bus_number": item.bus_number, "all_buses": []}
+        buses_data = {"route_number": item.bus_number, "all_buses": []}
         total_buses = generate_bus_numbers(item.bus_frequency)
 
         for bus in total_buses:
             try:
-                buses_data["all_buses"].append({"bus_iid": bus,
+                buses_data["all_buses"].append({"bus_number": bus,
                                                 "location": find_geocoding(item.stops[random.randint(0, item.stops.index(args.start))])})
             except:
                 pass
@@ -118,4 +118,13 @@ def bus_info()->jsonify:
 
 @app.route('/v1/all_stops')
 def all_stops()->jsonify:
-    return jsonify(all_bus_stops)
+    return jsonify({"title": x for x in all_bus_stops})
+
+@app.route('/v1/track_bus')
+def track_bus()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("latitude", type=str, required=True)
+    reqparse.add_argument("longitude", type=str, required=True)
+
+    args = reqparse.parse_args(request)
