@@ -53,7 +53,7 @@ def status()->jsonify:
     return response
 
 
-@app.route('/v1/bus_info', methods=["GET"])
+@app.route('/v1/track_buses', methods=["GET"])
 def bus_info()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("start", type=str, required=True)
@@ -123,6 +123,7 @@ def share_bus_location()->jsonify:
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True,
                                     "last_lat": args.latitude, "last_long": args.longitude, "timestamp": datetime.now()}])
 
+
 @app.route('/v1/stop_sharing')
 def stop_sharing_location()->jsonify:
     reqparse = RequestParser()
@@ -131,3 +132,28 @@ def stop_sharing_location()->jsonify:
     args = reqparse.parse_args(request)
 
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False}])
+
+@app.route('/v1/get_stops')
+def get_bus_info()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("route_number", type=str, required=True)
+    reqparse.add_argument("bus_number", type=str, required=True)
+    args = reqparse.parse_args(request)
+
+    url = "https://narasimhadatta.info/cgi-bin/find.cgi"
+    post_fields = {"route": args.route_number}
+    scraper_info = Request(url, urlencode(post_fields).encode())
+
+    json = urlopen(scraper_info).read().decode()
+    soup = BeautifulSoup(json, 'html.parser')
+    stops = soup.find_all("li")
+
+    bus_stops = []
+
+    for item in stops:
+        bus_stops.append(item.get_text())
+
+    response = jsonify(bus_stops)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
