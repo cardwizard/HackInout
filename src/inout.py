@@ -13,6 +13,7 @@ import logging
 import binascii
 import random
 import string
+from json import load
 
 # Setup Flask
 app = Flask(__name__)
@@ -22,6 +23,9 @@ api_key = "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E"
 
 logging.basicConfig(filename="/opt/soroco/logs/inout.log",
                     level=logging.DEBUG, format='%(asctime)s %(message)s')
+
+with open("all_stops.json", "r") as f:
+    all_bus_stops = load(f)
 
 def compute_bus_count(frequency: str)->int:
     frequency_map = {"rare": 2, "very rare": 1, "average": 5, "frequent": 8, "very frequent": 10}
@@ -101,8 +105,11 @@ def bus_info()->jsonify:
         total_buses = generate_bus_numbers(item.bus_frequency)
 
         for bus in total_buses:
-            buses_data["all_buses"].append({"bus_iid": bus,
-                                            "location": find_geocoding(item.stops[random.randint(0, item.stops.index(args.start))])})
+            try:
+                buses_data["all_buses"].append({"bus_iid": bus,
+                                                "location": find_geocoding(item.stops[random.randint(0, item.stops.index(args.start))])})
+            except:
+                pass
 
         result_bus_info.append(buses_data)
 
@@ -111,11 +118,4 @@ def bus_info()->jsonify:
 
 @app.route('/v1/all_stops')
 def all_stops()->jsonify:
-    url = "https://narasimhadatta.info/bmtc_query.html"
-    json = urlopen(url).read().decode()
-    all_stops = []
-    soup = BeautifulSoup(json, 'html.parser')
-
-    for item in soup.find_all('option'):
-        all_stops.append(item.get_text().strip())
-    return jsonify(all_stops)
+    return jsonify(all_bus_stops)
