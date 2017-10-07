@@ -49,7 +49,7 @@ def find_nearest_area(latitude: float, longitude: float) -> str:
     for item in response.json().get("results", []):
         if "street_address" in item["types"]:
             route = item["address_components"]
-    print(route)
+
     for route_search in route:
         if "sublocality" in route_search["types"]:
             reverse_location = route_search["long_name"]
@@ -132,7 +132,7 @@ def all_stops()->jsonify:
 @app.route('/v1/share_bus_location')
 def share_bus_location()->jsonify:
     reqparse = RequestParser()
-    reqparse.add_argument("user_id", type=int, required=True)
+    reqparse.add_argument("user_id", type=str, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
     reqparse.add_argument("route_number", type=str, required=True)
     reqparse.add_argument("latitude", type=str, required=True)
@@ -144,16 +144,27 @@ def share_bus_location()->jsonify:
                                     "route_number": args.route_number,
                                     "last_lat": args.latitude, "last_long": args.longitude, "timestamp": datetime.now()}])
 
+    response = jsonify(sucess=True)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route('/v1/stop_sharing')
 def stop_sharing_location()->jsonify:
     reqparse = RequestParser()
-    reqparse.add_argument("user_id", type=int, required=True)
+    reqparse.add_argument("user_id", type=str, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
     reqparse.add_argument("route_number", type=str, required=True)
+    reqparse.add_argument("latitude", type=str, required=True)
+    reqparse.add_argument("longitude", type=str, required=True)
     args = reqparse.parse_args(request)
 
-    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False, "route_number": args.route_number}])
+    db.create_table(schema.User)
+    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False,
+                                    "route_number": args.route_number,
+                                    "last_lat": args.latitude, "last_long": args.longitude, "timestamp": datetime.now()}])
+    response = jsonify(sucess=True)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
 
 @app.route('/v1/get_stops')
 def get_stops()->jsonify:
