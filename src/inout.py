@@ -4,7 +4,8 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
-from typing import List
+from typing import List, Dict
+from requests import get
 
 import json
 import hashlib
@@ -17,6 +18,7 @@ import string
 app = Flask(__name__)
 
 # Setup the logging
+api_key = "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E"
 
 logging.basicConfig(filename="/opt/soroco/logs/inout.log",
                     level=logging.DEBUG, format='%(asctime)s %(message)s')
@@ -35,6 +37,11 @@ def generate_bus_numbers(count: int)->List:
                                    random.randint(100, 9999))
         bus_numbers.append(number)
     return bus_numbers
+
+def find_geocoding(address: str)->Dict:
+    url = "https://maps.googleapis.com/maps/api/geocode/json?address={}&key={}".format(address, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
+    response = get(url)
+    return response.json()["results"][0]["geometry"]["location"]
 
 
 class BusInfo:
@@ -55,6 +62,7 @@ def status()->jsonify:
                 "version": "1.0.1"
             }
     return jsonify(status=status)
+
 
 
 @app.route('/v1/bus_info', methods=["GET"])
@@ -86,16 +94,17 @@ def bus_info()->jsonify:
             b = BusInfo(bus_number, all_stops, compute_bus_count(td[4].get_text().strip()))
             required_bus_info.append(b)
 
-    result_bus_info = {}
+    result_bus_info = []
 
     for item in required_bus_info:
-        buses_data = {}
+        buses_data = {"bus_number": item.bus_number, "all_buses": []}
         total_buses = generate_bus_numbers(item.bus_frequency)
 
         for bus in total_buses:
-            buses_data[bus] = item.stops[random.randint(0, item.stops.index(args.start))]
+            buses_data["all_buses"].append({"bus_iid": bus,
+                                            "location": find_geocoding(item.stops[random.randint(0, item.stops.index(args.start))])})
 
-        result_bus_info[item.bus_number] = buses_data
+        result_bus_info.append(buses_data)
 
     return jsonify(result_bus_info)
 
