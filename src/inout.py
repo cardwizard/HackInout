@@ -150,9 +150,10 @@ def stop_sharing_location()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("user_id", type=int, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("route_number", type=str, required=True)
     args = reqparse.parse_args(request)
 
-    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False}])
+    db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False, "route_number": args.route_number}])
 
 @app.route('/v1/get_stops')
 def get_stops()->jsonify:
