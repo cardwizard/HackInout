@@ -38,25 +38,6 @@ with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
 
 
-def find_nearest_area(latitude: float, longitude: float) -> str:
-    url = "https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}"
-    reverse_geo = url.format(latitude, longitude, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
-    response = get(reverse_geo)
-
-    reverse_location = ""
-    route = []
-
-    for item in response.json().get("results", []):
-        if "street_address" in item["types"]:
-            route = item["address_components"]
-
-    for route_search in route:
-        if "sublocality" in route_search["types"]:
-            reverse_location = route_search["long_name"]
-            break
-
-    return reverse_location
-
 @app.route('/v1/status')
 def status()->jsonify:
     """
@@ -113,7 +94,7 @@ def track_buses()->jsonify:
                 data_row = db_row
 
         if data_row:
-            buses_data["all_buses"].append({"bus_number": data_row[1], "latitude": data_row[5], "longitude": data_row[6]})
+            buses_data["all_buses"].append({"bus_number": data_row[1], "longitude": data_row[5], "latitude": data_row[6]})
 
         result_bus_info.append(buses_data)
 
@@ -195,7 +176,10 @@ def get_stops()->jsonify:
 def bus_specific_info()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("route_number", type=str, required=True)
-    reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("bus_number", type=str, required=False)
+    reqparse.add_argument("latitude", type=str, required=True)
+    reqparse.add_argument("longitude", type=str, required=True)
+
     args = reqparse.parse_args(request)
 
     to_select = [{"route_number": args.route_number}, {"tracking_status": True}]
@@ -213,6 +197,38 @@ def bus_specific_info()->jsonify:
             max_time_stamp = db_row[3]
             data_row = db_row
 
-    return jsonify({"crowd": len(users), "current_location": {"latitude": data_row[5], "longitude": data_row[6]},
-                    "nearest_area": find_nearest_area(data_row[5], data_row[6]),
-                    "last_heard": data_row[3]})
+    bus_longitude = data_row[5]
+    bus_latitude = data_row[6]
+
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins={}&destinations={}&key={}".format(
+        "{},{}".format(bus_latitude, bus_longitude), "{},{}".format(args.latitude, args.longitude), api_key)
+
+    distance_data = get(url)
+
+    bus_current_location = distance_data.json()["origin_addresses"]
+    metrics = distance_data.json()["rows"][0]["elements"][0]
+    distance_left = metrics["distance"]["text"]
+    estimated_time = metrics["duration"]["text"]
+
+    return jsonify({"crowd": len(users),
+                    "current_location": {"longitude": data_row[5], "latitude": data_row[6]},
+                    "nearest_area": bus_current_location,
+                    "last_heard": data_row[3],
+                    "distance_left": distance_left,
+                    "estimated_time": estimated_time})
+
+
+@app.route("/v1/estimatations")
+def estimations()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("route_number", type=str, required=True)
+    reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("source", type=str, required=True)
+    reqparse.add_argument("latitude", type=str, required=True)
+    reqparse.add_argument("longitude", type=str, required=True)
+
+    args = reqparse.parse_args(request)
+    url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins={}&destinations={}&key={}".format(
+        "{},{}".format(args.latitude, args.longitude), args.destination, api_key)
+
+    response = get(url)
