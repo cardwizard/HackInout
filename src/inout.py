@@ -38,6 +38,24 @@ with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
 
 
+def find_nearest_area(latitude: float, longitude: float)->str:
+    url = "https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}"
+    reverse_geo = url.format(latitude, longitude, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
+    response = get(reverse_geo)
+
+    reverse_location = ""
+    route = []
+
+    for item in response.json().get("results", []):
+        if item["types"][0] == "street_address":
+            route = item["address_components"]
+
+    for route_search in route:
+        if route_search["types"][0] == "route":
+            reverse_location = route_search["long_name"]
+
+    return reverse_location
+
 @app.route('/v1/status')
 def status()->jsonify:
     """
@@ -134,7 +152,7 @@ def stop_sharing_location()->jsonify:
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": False}])
 
 @app.route('/v1/get_stops')
-def get_bus_info()->jsonify:
+def get_stops()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("route_number", type=str, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
@@ -157,3 +175,29 @@ def get_bus_info()->jsonify:
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+
+@app.route("/v1/get_bus_info")
+def bus_specific_info()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("route_number", type=str, required=True)
+    reqparse.add_argument("bus_number", type=str, required=True)
+    args = reqparse.parse_args(request)
+
+    to_select = [{"route_number": args.route_number}, {"tracking_status": True}]
+    rows = db.select_values(schema.User, to_select)
+
+    max_time_stamp = datetime(year=1900, month=1, day=1)
+    data_row = ()
+
+    users = []
+
+    for db_row in rows:
+        users.append(db_row[0])
+
+        if db_row[3] > max_time_stamp:
+            max_time_stamp = db_row[3]
+            data_row = db_row
+
+    return jsonify({"crowd": len(users), "current_location": {"latitude": data_row[5], "longitude": data_row[6]},
+                    "nearest_area": find_nearest_area(data_row[5], data_row[6]),
+                    "last_heard": data_row[3]})
