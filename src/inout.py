@@ -216,19 +216,3 @@ def bus_specific_info()->jsonify:
                     "last_heard": data_row[3],
                     "distance_left": distance_left,
                     "estimated_time": estimated_time})
-
-
-@app.route("/v1/estimatations")
-def estimations()->jsonify:
-    reqparse = RequestParser()
-    reqparse.add_argument("route_number", type=str, required=True)
-    reqparse.add_argument("bus_number", type=str, required=True)
-    reqparse.add_argument("source", type=str, required=True)
-    reqparse.add_argument("latitude", type=str, required=True)
-    reqparse.add_argument("longitude", type=str, required=True)
-
-    args = reqparse.parse_args(request)
-    url = "https://maps.googleapis.com/maps/api/distancematrix/json?units=imperial&origins={}&destinations={}&key={}".format(
-        "{},{}".format(args.latitude, args.longitude), args.destination, api_key)
-
-    response = get(url)
