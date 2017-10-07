@@ -118,7 +118,7 @@ def bus_info()->jsonify:
 
 @app.route('/v1/all_stops')
 def all_stops()->jsonify:
-    return jsonify({"title": x for x in all_bus_stops})
+    return jsonify([{"title": x} for x in all_bus_stops])
 
 @app.route('/v1/track_bus')
 def track_bus()->jsonify:
