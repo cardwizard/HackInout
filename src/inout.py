@@ -8,15 +8,34 @@ from typing import List, Dict
 from requests import get
 from json import load
 
+from sqlalchemy.engine import create_engine
+from sqlalchemy.orm import sessionmaker
+
 import json
 import hashlib
 import logging
 import binascii
 import random
 import string
+import sqlalchemy
 
 # Setup Flask
 app = Flask(__name__)
+
+def connect(user: str, password: str, db: str, host: str='localhost', port: int=5432):
+    '''Returns a connection and a metadata object'''
+    # We connect with the help of the PostgreSQL URL
+    # postgresql://federer:grandestslam@localhost:5432/tennis
+    url = 'postgresql://{}:{}@{}:{}/{}'
+    url = url.format(user, password, host, port, db)
+
+    # The return value of create_engine() is our connection object
+    con = sqlalchemy.create_engine(url, client_encoding='utf8')
+
+    # We then bind the connection to MetaData()
+    meta = sqlalchemy.MetaData(bind=con, reflect=True)
+
+    return con, meta
 
 
 # Setup the logging
@@ -27,6 +46,7 @@ logging.basicConfig(filename="/opt/soroco/logs/inout.log",
 
 with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
+
 
 def compute_bus_count(frequency: str)->int:
     frequency_map = {"rare": 2, "very rare": 1, "average": 5, "frequent": 8, "very frequent": 10}
