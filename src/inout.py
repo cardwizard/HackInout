@@ -10,6 +10,7 @@ from json import load
 
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import datetime
 
 import json
 import hashlib
@@ -30,8 +31,8 @@ app = Flask(__name__)
 # Setup the logging
 api_key = "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E"
 
-logging.basicConfig(filename="/opt/soroco/logs/inout.log",
-                    level=logging.DEBUG, format='%(asctime)s %(message)s')
+# logging.basicConfig(filename="/opt/soroco/logs/inout.log",
+#                     level=logging.DEBUG, format='%(asctime)s %(message)s')
 
 with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
@@ -60,8 +61,8 @@ def find_geocoding(address: str)->Dict:
 
 
 class BusInfo:
-    def __init__(self, bus_number: int, stops: List[str], bus_frequency: int) -> None:
-        self.bus_number = bus_number
+    def __init__(self, route_number: int, stops: List[str], bus_frequency: int) -> None:
+        self.route_number = route_number
         self.stops = stops
         self.bus_frequency = bus_frequency
 
@@ -103,25 +104,30 @@ def bus_info()->jsonify:
     for rows in tr:
         td = rows.find_all('td')
         if td:
-            bus_number = td[0].get_text()
+            route_number = td[0].get_text()
 
             all_stops = td[3].get_text().split(",")
             all_stops = [x.strip() for x in all_stops]
-            b = BusInfo(bus_number, all_stops, compute_bus_count(td[4].get_text().strip()))
+            b = BusInfo(route_number, all_stops, compute_bus_count(td[4].get_text().strip()))
             required_bus_info.append(b)
 
     result_bus_info = []
 
     for item in required_bus_info:
-        buses_data = {"route_number": item.bus_number, "all_buses": []}
-        total_buses = generate_bus_numbers(item.bus_frequency)
+        buses_data = {"route_number": item.route_number, "all_buses": []}
+        to_select = [{"route_number": item.route_number}, {"tracking_status": True}]
+        rows = db.select_values(schema.User, to_select)
 
-        for bus in total_buses:
-            try:
-                buses_data["all_buses"].append({"bus_number": bus,
-                                                "location": find_geocoding(item.stops[random.randint(0, item.stops.index(args.start))])})
-            except:
-                pass
+        max_time_stamp = datetime(year=1900, month=1, day=1)
+        data_row = ()
+
+        for db_row in rows:
+            if db_row[3] > max_time_stamp:
+                max_time_stamp = db_row[3]
+                data_row = db_row
+
+        if data_row:
+            buses_data["all_buses"].append({"bus_number": data_row[1], "latitude": data_row[5], "longitude": data_row[6]})
 
         result_bus_info.append(buses_data)
 

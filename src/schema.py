@@ -13,6 +13,7 @@ class User:
               meta,
               Column("user_name", String, primary_key=True),
               Column("bus_number", String, primary_key=True),
+              Column("route_number", String, primary_key=True),
               Column("timestamp", DateTime),
               Column("tracking_status", Boolean),
               Column("last_long", Float),

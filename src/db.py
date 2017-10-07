@@ -2,7 +2,7 @@ import sqlalchemy
 
 from sqlalchemy import Column, Integer, String, Boolean, Float, Table
 from typing import Dict, List
-from schema import User
+# from schema import User
 from datetime import datetime
 
 def connect(user: str, password: str, db: str, host: str='localhost', port: int=5432):
@@ -37,13 +37,37 @@ def insert_values(table, values: List[Dict]):
         # Try to insert if it is new.
         con.execute(table.insert(), values)
     except:
+        try:
         # If it is not, update the row.
-        con.execute(table.update(), values)
+            con.execute(table.update(), values)
+        except:
+            # If the entry is exactly the same, pass!
+            print("Exists already!")
+            pass
 
-def main()->None:
-    create_table(User)
-    insert_values(User, [{"user_name": "Aadesh", "bus_number": "KA 01 AB 1994", "tracking_status": True,
-                          "last_lat": 19.09, "last_long": 20.1, "timestamp": datetime.now()}])
+def select_values(table, values: List[Dict]):
+    con, meta = connect('postgres', 'AADesh123', 'hackinout')
+    base_table = table()
+    table = meta.tables[base_table.__tablename__]
 
-if __name__ == '__main__':
-    main()
+    cmd = table.select().where(table.c[list(values[0].keys())[0]] == list(values[0].values())[0])
+
+    for commands in values[1:]:
+        cmd = cmd.where(table.c[list(commands.keys())[0]] == list(commands.values())[0])
+
+    rows = con.execute(cmd)
+
+    return rows
+
+# def main()->None:
+#     create_table(User)
+#     to_insert = [{"user_name": "Aadesh", "bus_number": "KA 01 AB 1994", "tracking_status": True, "route_number": "341H",
+#                           "last_lat": 19.09, "last_long": 20.1, "timestamp": datetime.now()}]
+#     insert_values(User, to_insert)
+#     to_select = [{"bus_number": "KA 01 AB 1994"}, {"user_name": "Aadesh"}]
+#     select_values(User, to_select)
+#
+#
+#
+# if __name__ == '__main__':
+#     main()
