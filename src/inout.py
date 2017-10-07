@@ -38,7 +38,7 @@ with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
 
 
-def find_nearest_area(latitude: float, longitude: float)->str:
+def find_nearest_area(latitude: float, longitude: float) -> str:
     url = "https://maps.googleapis.com/maps/api/geocode/json?latlng={},{}&key={}"
     reverse_geo = url.format(latitude, longitude, "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E")
     response = get(reverse_geo)
@@ -47,12 +47,13 @@ def find_nearest_area(latitude: float, longitude: float)->str:
     route = []
 
     for item in response.json().get("results", []):
-        if item["types"][0] == "street_address":
+        if "street_address" in item["types"]:
             route = item["address_components"]
-
+    print(route)
     for route_search in route:
-        if route_search["types"][0] == "route":
+        if "sublocality" in route_search["types"]:
             reverse_location = route_search["long_name"]
+            break
 
     return reverse_location
 
@@ -72,7 +73,7 @@ def status()->jsonify:
 
 
 @app.route('/v1/track_buses', methods=["GET"])
-def bus_info()->jsonify:
+def track_buses()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("start", type=str, required=True)
     reqparse.add_argument("end", type=str, required=True)
@@ -133,12 +134,14 @@ def share_bus_location()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("user_id", type=int, required=True)
     reqparse.add_argument("bus_number", type=str, required=True)
+    reqparse.add_argument("route_number", type=str, required=True)
     reqparse.add_argument("latitude", type=str, required=True)
     reqparse.add_argument("longitude", type=str, required=True)
 
     args = reqparse.parse_args(request)
     db.create_table(schema.User)
     db.insert_values(schema.User, [{"user_name": args.user_id, "bus_number": args.bus_number, "tracking_status": True,
+                                    "route_number": args.route_number,
                                     "last_lat": args.latitude, "last_long": args.longitude, "timestamp": datetime.now()}])
 
 
