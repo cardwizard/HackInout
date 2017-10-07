@@ -1,6 +1,6 @@
-from flask import Flask, jsonify, request, Response as FlaskResponse, make_response
+from flask import Flask, jsonify, request
 from flask_restful.reqparse import RequestParser
-from pathlib import Path
+
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from bs4 import BeautifulSoup
@@ -8,17 +8,7 @@ from typing import List, Dict
 from requests import get
 from json import load
 
-from sqlalchemy.engine import create_engine
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
-
-import json
-import hashlib
-import logging
-import binascii
-import random
-import string
-import sqlalchemy
 
 # Database imports
 import src.schema as schema
@@ -37,6 +27,43 @@ api_key = "AIzaSyD-ZGKvZYM953e9CQOBdCeCPlQ_onDos6E"
 with open("all_stops.json", "r") as f:
     all_bus_stops = load(f)
 
+with open("all_routes.json", "r") as f:
+    all_routes = load(f)
+
+bus_stops_global = {}
+
+def get_routes(start: str, end: str)->List:
+    url = "https://narasimhadatta.info/cgi-bin/find.cgi"
+    post_fields = {"from": start, "to": end, "how": "Direct Routes Only"}
+
+    request1 = Request(url, urlencode(post_fields).encode())
+    json = urlopen(request1).read().decode()
+    soup = BeautifulSoup(json, 'html.parser')
+    tr = soup.find_all('tr')
+
+    route_number_list = []
+
+    for rows in tr:
+        td = rows.find_all('td')
+        if td:
+            route_number = td[0].get_text()
+            route_number_list.append(route_number)
+    return route_number_list
+
+def get_stops(route_number: str):
+    url = "https://narasimhadatta.info/cgi-bin/find.cgi"
+    post_fields = {"route": route_number}
+    scraper_info = Request(url, urlencode(post_fields).encode())
+
+    json = urlopen(scraper_info).read().decode()
+    soup = BeautifulSoup(json, 'html.parser')
+    stops = soup.find_all("li")
+
+    bus_stops = []
+
+    for item in stops:
+        bus_stops.append(item.get_text())
+    return bus_stops
 
 @app.route('/v1/status')
 def status()->jsonify:
@@ -61,23 +88,13 @@ def track_buses()->jsonify:
 
     args = reqparse.parse_args(request)
 
+    if all_routes.get(args.start, {}).get(args.end, None) is None:
+        route_number_list = get_routes(args.start, args.end)
+        all_routes[args.start] = {args.end: route_number_list}
+    else:
+        route_number_list = all_routes.get(args.start).get(args.end)
+
     # Url Params
-    url = "https://narasimhadatta.info/cgi-bin/find.cgi"
-    post_fields = {"from": args.start, "to": args.end, "how": "Direct Routes Only"}
-
-    request1 = Request(url, urlencode(post_fields).encode())
-    json = urlopen(request1).read().decode()
-    soup = BeautifulSoup(json, 'html.parser')
-    tr = soup.find_all('tr')
-
-    route_number_list = []
-
-    for rows in tr:
-        td = rows.find_all('td')
-        if td:
-            route_number = td[0].get_text()
-            route_number_list.append(route_number)
-
     result_bus_info = []
 
     for route in route_number_list:
@@ -154,18 +171,11 @@ def get_stops()->jsonify:
     reqparse.add_argument("bus_number", type=str, required=True)
     args = reqparse.parse_args(request)
 
-    url = "https://narasimhadatta.info/cgi-bin/find.cgi"
-    post_fields = {"route": args.route_number}
-    scraper_info = Request(url, urlencode(post_fields).encode())
-
-    json = urlopen(scraper_info).read().decode()
-    soup = BeautifulSoup(json, 'html.parser')
-    stops = soup.find_all("li")
-
-    bus_stops = []
-
-    for item in stops:
-        bus_stops.append(item.get_text())
+    if bus_stops_global.get(args.route_number, None) is None:
+        bus_stops = get_stops(args.route_number)
+        bus_stops_global[args.route_number] = bus_stops
+    else:
+        bus_stops = bus_stops_global[args.route_number]
 
     response = jsonify(bus_stops)
     response.headers.add('Access-Control-Allow-Origin', '*')

@@ -18,4 +18,3 @@ class User:
               Column("tracking_status", Boolean),
               Column("last_long", Float),
               Column("last_lat", Float))
-

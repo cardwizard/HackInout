@@ -63,10 +63,11 @@ def main()->None:
     to_insert = [{"user_name": "Prem", "bus_number": "KA 01 AB 1994", "tracking_status": True, "route_number": "341H",
                           "last_long": 12.9734115802915, "last_lat": 77.5962565802915, "timestamp": datetime.now()}]
     insert_values(User, to_insert)
+
 #     to_select = [{"bus_number": "KA 01 AB 1994"}, {"user_name": "Aadesh"}]
 #     select_values(User, to_select)
 
 
 # if __name__ == '__main__':
-#     from schema import User
+#     from schema import User, Buses
 #     main()
