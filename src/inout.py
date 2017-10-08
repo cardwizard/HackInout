@@ -262,3 +262,15 @@ def crowd_info()->jsonify:
     response = jsonify(response_dict)
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
+
+@app.route('/v1/route_numbers')
+def get_all_route_numbers()->jsonify:
+
+    with open("route_numbers.json", "r") as f:
+        data = load(f)
+
+    data_structured = [{"name": x, "value": x} for x in data]
+
+    response = jsonify(data_structured)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
