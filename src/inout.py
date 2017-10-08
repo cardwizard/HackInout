@@ -13,6 +13,7 @@ from datetime import datetime
 # Database imports
 import src.schema as schema
 import src.db as db
+import random
 
 # Setup Flask
 app = Flask(__name__)
@@ -220,9 +221,44 @@ def bus_specific_info()->jsonify:
     distance_left = metrics["distance"]["text"]
     estimated_time = metrics["duration"]["text"]
 
-    return jsonify({"crowd": len(users),
+    response = jsonify({"crowd": len(users),
                     "current_location": {"longitude": data_row[5], "latitude": data_row[6]},
                     "nearest_area": bus_current_location,
                     "last_heard": data_row[3],
                     "distance_left": distance_left,
                     "estimated_time": estimated_time})
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+
+@app.route("/v1/get_crowd_info")
+def crowd_info()->jsonify:
+    reqparse = RequestParser()
+    reqparse.add_argument("route_number", type=str, required=True)
+
+    response_dict = {}
+    args = reqparse.parse_args(request)
+
+    if bus_stops_global.get(args.route_number, None) is None:
+        bus_stops = find_stops(args.route_number)
+        bus_stops_global[args.route_number] = bus_stops
+    else:
+        bus_stops = bus_stops_global[args.route_number]
+
+    data = []
+    background_color = []
+
+    for i in range(len(bus_stops)):
+        data.append(random.randint(0, 100))
+
+    response_dict["labels"] = bus_stops
+    response_dict["datasets"] = [
+            {
+                "label": "Number of people",
+                "data": data
+            }
+        ]
+
+    response = jsonify(response_dict)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
