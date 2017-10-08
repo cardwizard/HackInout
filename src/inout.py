@@ -236,7 +236,9 @@ def crowd_info()->jsonify:
     reqparse = RequestParser()
     reqparse.add_argument("route_number", type=str, required=True)
 
-    response_dict = {}
+    line_dict = {}
+    bar_dict = {}
+
     args = reqparse.parse_args(request)
 
     if bus_stops_global.get(args.route_number, None) is None:
@@ -246,23 +248,50 @@ def crowd_info()->jsonify:
         bus_stops = bus_stops_global[args.route_number]
 
     data = []
+    data1 = []
+    data2 = []
     background_color = []
 
-    r = lambda: random.randint(0, 255)
     for i in range(len(bus_stops)):
         data.append(random.randint(0, 100))
-        background_color.append('#%02X%02X%02X' % (r(), r(), r()))
+        data1.append(random.randint(0, 100))
+        data2.append(random.randint(0, 100))
+        background_color.append('#000000')
 
-    response_dict["labels"] = bus_stops
-    response_dict["datasets"] = [
+    line_dict["labels"] = bus_stops
+    line_dict["datasets"] = [
             {
-                "label": "Number of people",
+                "label": "Number of passengers",
                 "backgroundColor": background_color,
-                "data": data
+                "data": data,
+                "fill": False
             }
         ]
 
-    response = jsonify(response_dict)
+    bar_dict["labels"] = bus_stops
+    bar_dict["datasets"] = [
+        {
+            "label": "Winter",
+            "backgroundColor": "#00FFFF",
+            "data": data,
+            "fill": False
+        },
+        {
+            "label": "Summer",
+            "backgroundColor": "#0000FF",
+            "data": data1,
+            "fill": False
+        },
+        {
+            "label": "Rainy",
+            "backgroundColor": "#FF00FF",
+            "data": data2,
+            "fill": False
+        }
+    ]
+
+    response = {"bar_chart": bar_dict, "line_chart": line_dict}
+    response = jsonify(response)
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
@@ -275,5 +304,21 @@ def get_all_route_numbers()->jsonify:
     data_structured = [{"name": x, "value": x} for x in data]
 
     response = jsonify(data_structured)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@app.route('/v1/get_busy_routes')
+def get_all_busy_routes()->jsonify:
+    busy_routes = []
+
+    with open("all_routes.json", "r") as f:
+        data = load(f)
+
+    for start, stop_info in data.items():
+        for stop, buses in stop_info.items():
+            busy_routes.append({"Route": "{} to {}".format(start, stop), "Buses": len(buses)})
+
+    top_routes = sorted(busy_routes, key=lambda k: k['Buses'], reverse=True)
+    response = jsonify(top_routes[:10])
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
