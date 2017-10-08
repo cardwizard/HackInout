@@ -178,7 +178,7 @@ def get_stops()->jsonify:
     else:
         bus_stops = bus_stops_global[args.route_number]
 
-    response = jsonify(bus_stops)
+    response = jsonify([{"title": x} for x in bus_stops])
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
