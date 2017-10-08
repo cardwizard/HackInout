@@ -248,13 +248,16 @@ def crowd_info()->jsonify:
     data = []
     background_color = []
 
+    r = lambda: random.randint(0, 255)
     for i in range(len(bus_stops)):
         data.append(random.randint(0, 100))
+        background_color.append('#%02X%02X%02X' % (r(), r(), r()))
 
     response_dict["labels"] = bus_stops
     response_dict["datasets"] = [
             {
                 "label": "Number of people",
+                "backgroundColor": background_color,
                 "data": data
             }
         ]
